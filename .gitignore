@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env*
+!.env.example
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Coverage and testing
+coverage/
+*.lcov
+
+# Optional npm cache directory
+.npm/
+
+# Optional Yarn cache
+.yarn/cache/
+.yarn/unplugged/
+.pnp.*
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Supabase
+.supabase/
+
+# OS and editor swap/backup files
+*~
+*.swp
+*.bak
+*.tmp
+
+# Debug output
+debug.log
+debug/
+
