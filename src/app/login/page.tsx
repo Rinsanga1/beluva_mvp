@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/auth-provider';
 import { LoginSchema } from '@/lib/validations';
 import { z } from 'zod';
+import { authLogger } from '@/lib/logger';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -51,15 +52,24 @@ export default function LoginPage() {
     setIsLoading(true);
     setServerError('');
 
+    // Debug the login attempt
+    authLogger.info('Login attempt', { email });
+
     try {
+      authLogger.info('Calling login function');
       const result = await login(email, password);
-      
+
+      authLogger.info('Login result received', { success: result.success, error: result.error });
+
       if (result.success) {
+        authLogger.success('Login successful, redirecting');
         router.push('/dashboard');
       } else {
+        authLogger.error('Login failed', { error: result.error });
         setServerError(result.error || 'Login failed');
       }
     } catch (error) {
+      authLogger.error('Unexpected login error', { error });
       setServerError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -83,7 +93,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-        
+
         {serverError && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="flex">
@@ -98,7 +108,7 @@ export default function LoginPage() {
             </div>
           </div>
         )}
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div className="mb-4">
@@ -120,7 +130,7 @@ export default function LoginPage() {
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
-            
+
             <div className="mb-4">
               <label htmlFor="password" className="form-label">
                 Password

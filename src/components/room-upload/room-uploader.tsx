@@ -8,7 +8,7 @@ import { useAuth } from '@/components/auth-provider';
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 export default function RoomUploader() {
-  const { user } = useAuth();
+  const { user, useMockUser } = useAuth();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -89,6 +89,21 @@ export default function RoomUploader() {
     setErrorMessage(null);
     
     try {
+      // Simulate API call for testing AI features
+      // This is a temporary mock for testing without authentication
+      console.log('Mock image upload in progress...');
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a fake image ID
+      const mockImageId = `mock-image-${Date.now()}`;
+      console.log('Mock upload complete with ID:', mockImageId);
+      
+      setUploadStatus('success');
+      setUploadedImageId(mockImageId);
+      
+      /* Original API code (commented out during testing)
       const formData = new FormData();
       formData.append('file', file);
       
@@ -105,6 +120,7 @@ export default function RoomUploader() {
       
       setUploadStatus('success');
       setUploadedImageId(data.data.id);
+      */
     } catch (error: any) {
       setUploadStatus('error');
       setErrorMessage(error.message || 'An error occurred during upload');
@@ -113,7 +129,14 @@ export default function RoomUploader() {
 
   const handleContinue = () => {
     if (uploadedImageId) {
-      router.push(`/recommendations?imageId=${uploadedImageId}`);
+      // For testing, include preview image in URL if it's a mock upload
+      if (uploadedImageId.startsWith('mock-image-') && preview) {
+        // Save preview to localStorage for testing
+        localStorage.setItem('mockRoomImage', preview);
+        router.push(`/recommendations?imageId=${uploadedImageId}&mockImage=true`);
+      } else {
+        router.push(`/recommendations?imageId=${uploadedImageId}`);
+      }
     }
   };
 
@@ -131,6 +154,16 @@ export default function RoomUploader() {
   return (
     <div className="w-full">
       <h2 className="text-lg font-medium text-gray-900 mb-4">Upload a Room Image</h2>
+      {useMockUser && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+          <p className="text-yellow-800 text-sm font-medium flex items-center">
+            <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            Test Mode: Upload will be simulated and no real API calls will be made
+          </p>
+        </div>
+      )}
       <p className="text-gray-600 mb-6">
         Upload an image of your room to get AI-powered furniture recommendations.
         We support JPG, PNG, and WEBP formats up to 10MB.

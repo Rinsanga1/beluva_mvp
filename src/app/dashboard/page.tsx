@@ -8,10 +8,14 @@ import RoomUploader from '@/components/room-upload/room-uploader';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, useMockUser } = useAuth();
   const [activeTab, setActiveTab] = useState('upload');
+  
+  // For testing purposes - display a notice when using a mock user
 
-  // Redirect if not authenticated
+  // Authentication check is disabled for AI testing
+  // When auth is re-enabled, uncomment this code
+  /*
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
@@ -41,6 +45,7 @@ export default function DashboardPage() {
       </div>
     );
   }
+  */
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -52,6 +57,7 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-700">
                 Welcome, <span className="font-medium">{user.name}</span>
+                {useMockUser && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Test Mode</span>}
               </div>
               <button
                 onClick={() => logout()}

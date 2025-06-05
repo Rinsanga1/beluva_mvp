@@ -11,15 +11,20 @@ type Recommendation = {
   name: string;
   description: string;
   price: number;
-  image_url: string;
+  image_urls: string[];
+  category: string;
   purchase_link: string;
-  reason: string;
+  ai_reasoning?: string;
+  confidence_score?: string;
+  material?: string;
+  dimensions?: string;
+  tags?: string[];
 };
 
 export default function RecommendationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, useMockUser } = useAuth();
   const [roomImage, setRoomImage] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
@@ -27,15 +32,19 @@ export default function RecommendationsPage() {
   const [budget, setBudget] = useState('1000');
   const [style, setStyle] = useState('modern');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isMockImage, setIsMockImage] = useState(false);
 
   const imageId = searchParams?.get('imageId');
 
-  // Redirect if not authenticated
+  // Authentication check is disabled for AI testing
+  // When auth is re-enabled, uncomment this code
+  /*
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
+  */
 
   // Redirect if no image ID is provided
   useEffect(() => {
@@ -46,46 +55,78 @@ export default function RecommendationsPage() {
 
   // Fetch room image details
   useEffect(() => {
-    if (imageId && isAuthenticated) {
-      const fetchRoomImage = async () => {
-        try {
-          const response = await fetch(`/api/room-images/${imageId}`);
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch room image');
-          }
-          
-          const data = await response.json();
-          setRoomImage(data.data.url);
-        } catch (error) {
-          console.error('Error fetching room image:', error);
-          setError('Failed to load room image');
+    if (imageId) {
+      // Check if we're using a mock image from local storage
+      const mockParam = searchParams?.get('mockImage');
+      if (mockParam === 'true') {
+        const storedImage = localStorage.getItem('mockRoomImage');
+        if (storedImage) {
+          setRoomImage(storedImage);
+          setIsMockImage(true);
+          return;
         }
-      };
+      }
       
-      fetchRoomImage();
+      // For real images, fetch from API
+      if (isAuthenticated || useMockUser) {
+        const fetchRoomImage = async () => {
+          try {
+            // During testing mode, we don't actually fetch
+            if (useMockUser) {
+              // Use a placeholder image for testing
+              setRoomImage('https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?q=80&w=1000');
+              return;
+            }
+            
+            const response = await fetch(`/api/room-images/${imageId}`);
+            
+            if (!response.ok) {
+              throw new Error('Failed to fetch room image');
+            }
+            
+            const data = await response.json();
+            setRoomImage(data.data.url);
+          } catch (error) {
+            console.error('Error fetching room image:', error);
+            setError('Failed to load room image');
+          }
+        };
+        
+        fetchRoomImage();
+      }
     }
-  }, [imageId, isAuthenticated]);
+  }, [imageId, isAuthenticated, useMockUser, searchParams]);
 
   const generateRecommendations = async () => {
     if (!imageId) return;
+    
+    // Display test mode notice if using mock user
+    if (useMockUser) {
+      console.log('Test mode: Using mock recommendations API');
+    }
     
     setIsLoadingRecommendations(true);
     setError(null);
     
     try {
-      const response = await fetch('/api/recommend-furniture', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          room_image_id: imageId,
-          budget: parseInt(budget),
-          style: style,
-          furniture_types: ['sofa', 'chair', 'table', 'lamp', 'rug'],
-        }),
-      });
+      // Use mock API for testing mode, real API otherwise
+      const apiEndpoint = useMockUser 
+        ? `/api/mock-recommendations?imageId=${imageId}&style=${style}&budget=${budget}` 
+        : '/api/recommend-furniture';
+      
+      const response = useMockUser
+        ? await fetch(apiEndpoint)
+        : await fetch('/api/recommend-furniture', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              room_image_id: imageId,
+              budget: parseInt(budget),
+              style,
+            }),
+          });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -94,9 +135,14 @@ export default function RecommendationsPage() {
       
       const data = await response.json();
       setRecommendations(data.data.recommendations);
+      
+      // Log AI analysis in test mode
+      if (useMockUser && data.data.room_analysis) {
+        console.log('AI Room Analysis:', data.data.room_analysis);
+      }
     } catch (error: any) {
       console.error('Error generating recommendations:', error);
-      setError(error.message || 'An error occurred while generating recommendations');
+      setError(error.message || 'Failed to generate recommendations');
     } finally {
       setIsLoadingRecommendations(false);
     }
@@ -287,13 +333,14 @@ export default function RecommendationsPage() {
                         selectedItems.includes(item.id) ? 'border-primary-500 ring-2 ring-primary-500' : 'border-gray-200'
                       }`}
                     >
-                      <div className="relative h-48 w-full">
-                        <Image
-                          src={item.image_url}
-                          alt={item.name}
-                          fill
-                          style={{ objectFit: 'cover' }}
+                      <div className="relative h-48 w-full mb-4">
+                        <Image 
+                          src={item.image_urls?.[0] || 'https://via.placeholder.com/300'} 
+                          alt={item.name} 
+                          fill 
+                          style={{ objectFit: 'cover' }} 
                           sizes="(max-width: 768px) 100vw, 300px"
+                          className="rounded-lg"
                         />
                       </div>
                       <div className="p-4">

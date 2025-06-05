@@ -5,6 +5,23 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 export async function middleware(req: NextRequest) {
   // Create a Supabase client configured to use cookies
   const res = NextResponse.next();
+  
+  // AUTHENTICATION BYPASS FOR TESTING AI FEATURES
+  // This code bypasses all authentication checks temporarily
+  // WARNING: This should be removed when authentication is re-enabled
+  
+  // Redirect /login or /signup to /dashboard directly for now
+  const isLoginPage = req.nextUrl.pathname === '/login' || 
+                     req.nextUrl.pathname === '/signup';
+  
+  if (isLoginPage) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+  
+  return res;
+  
+  // Original authentication code (commented out for now)
+  /*
   const supabase = createMiddlewareClient({ req, res });
 
   // Refresh session if expired & still valid in Supabase
@@ -32,6 +49,7 @@ export async function middleware(req: NextRequest) {
   if (isLoginPage && session) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
+  */
 
   return res;
 }
@@ -39,10 +57,13 @@ export async function middleware(req: NextRequest) {
 // Specify which routes this middleware should run on
 export const config = {
   matcher: [
+    // Keep the login/signup redirects for now
+    '/login',
+    '/signup',
+    // Other routes no longer need auth checks during testing
+    // but keeping them in the matcher to easily restore later
     '/dashboard/:path*',
     '/upload/:path*',
     '/admin/:path*',
-    '/login',
-    '/signup',
   ],
 };
